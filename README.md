@@ -22,7 +22,7 @@ This is especially dangerous in **healthcare**, **finance**, **legal systems**, 
 ## How It Works
  
 ```
-User Prompt → LLM (Phi3) → Claim Extraction → Embedding Generation
+User Prompt → LLM (Tinyllama) → Claim Extraction → Embedding Generation
     → Cosine Similarity Search → Knowledge Base Verification
         → Confidence Scoring → Verification Report
 ```
@@ -59,7 +59,7 @@ User Prompt → LLM (Phi3) → Claim Extraction → Embedding Generation
 |---|---|
 | Runtime | Node.js + TypeScript |
 | Framework | Express.js |
-| LLM | Ollama (Phi3 Mini) |
+| LLM | Ollama (Tinyllama) |
 | Embeddings | nomic-embed-text |
 | Verification | Cosine Similarity |
  
@@ -130,7 +130,7 @@ npm run dev
  
 - [x] Local LLM inference (Phi3 + Ollama)
 - [x] Claim extraction + semantic verification
-- [ ] ChromaDB vector database integration
+- [x] ChromaDB vector database integration
 - [ ] RAG verification (PDFs, documents, research papers)
 - [ ] Real-time evidence retrieval (Wikipedia, trusted APIs)
 - [ ] Full audit trail + production risk scoring
