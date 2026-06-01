@@ -18,11 +18,20 @@ router.post('/', async (req, res) => {
             response: llmresponse,
             claims: verifiedclaims
         });
-    } catch (error) {
-        console.error(error);
-        res.status(500).json({
+    } catch (error: any) 
+    {
+
+        console.error("Generate Route Error:", error);
+
+        res.status(500).json
+        ({
+
             success: false,
-            error: 'Failed to generate response and extract claims'
+
+            error: error?.message ||
+                "Unknown server error",
+
+            timestamp: new Date().toISOString()
         });
     }
 });
