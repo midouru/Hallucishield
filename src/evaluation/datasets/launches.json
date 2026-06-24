@@ -1,0 +1,10 @@
+[
+  {
+    "question": "When was Azure launched?",
+    "expected": "Microsoft launched Azure cloud services in 2010"
+  },
+  {
+    "question": "When was Gmail launched?",
+    "expected": "Google launched Gmail in 2004"
+  }
+]

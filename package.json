@@ -7,7 +7,8 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "dev": "ts-node-dev --respawn --transpile-only src/server.ts",
     "build": "tsc",
-    "start": "node dist/index.js"
+    "start": "node dist/index.js",
+    "evaluate": "ts-node src/evaluation/evaluate.ts"
   },
   "keywords": [],
   "author": "",
@@ -15,9 +16,11 @@
   "type": "commonjs",
   "dependencies": {
     "axios": "^1.16.1",
+    "chromadb": "^3.4.3",
     "cors": "^2.8.6",
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
+    "groq-sdk": "^1.2.1",
     "openai": "^6.39.0"
   },
   "devDependencies": {

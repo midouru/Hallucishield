@@ -1,0 +1,14 @@
+[
+  {
+    "question": "Who owns GitHub?",
+    "expected": "GitHub is owned by Microsoft"
+  },
+  {
+    "question": "Who owns YouTube?",
+    "expected": "YouTube is owned by Google"
+  },
+  {
+    "question": "Who owns AWS?",
+    "expected": "AWS is owned by Amazon"
+  }
+]

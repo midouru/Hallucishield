@@ -1,0 +1,14 @@
+[
+  {
+    "question": "Did Amazon acquire GitHub?",
+    "shouldFail": true
+  },
+  {
+    "question": "Did Tesla acquire YouTube?",
+    "shouldFail": true
+  },
+  {
+    "question": "Did Apple acquire OpenAI?",
+    "shouldFail": true
+  }
+]

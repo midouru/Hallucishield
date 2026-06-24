@@ -1,0 +1,20 @@
+GitHub was founded in 2008.
+GitHub was founded by Tom Preston-Werner, Chris Wanstrath, PJ Hyett, and Scott Chacon.
+GitHub is a web-based platform for version control.
+GitHub is built around Git.
+GitHub is owned by Microsoft.
+Microsoft acquired GitHub in 2018.
+GitHub is headquartered in San Francisco.
+GitHub hosts millions of software repositories.
+GitHub supports open-source development.
+GitHub provides pull requests for code review.
+GitHub provides issues for project tracking.
+GitHub Actions enables CI/CD workflows.
+GitHub Copilot is an AI coding assistant.
+GitHub supports collaborative software development.
+GitHub provides GitHub Pages for website hosting.
+GitHub offers private and public repositories.
+GitHub provides organization accounts.
+GitHub integrates with many developer tools.
+GitHub is widely used by software engineers.
+GitHub is one of the largest code hosting platforms.

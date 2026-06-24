@@ -1,0 +1,14 @@
+[
+  {
+    "question": "Who acquired GitHub?",
+    "expected": "Microsoft acquired GitHub in 2018"
+  },
+  {
+    "question": "Who acquired YouTube?",
+    "expected": "Google acquired YouTube in 2006"
+  },
+  {
+    "question": "Who acquired Whole Foods?",
+    "expected": "Amazon acquired Whole Foods Market in 2017"
+  }
+]
