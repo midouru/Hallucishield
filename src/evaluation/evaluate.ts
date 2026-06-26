@@ -1,43 +1,81 @@
-import axios from 'axios';
-import  acqusitions  from './datasets/acqusitions.json';
-
+import axios from "axios";
+import acquisitions from "./datasets/acqusitions.json";
 
 async function runEvaluation() {
+
     let passed = 0;
-    for (const test of acqusitions) {
+
+    console.log("\n========== HalluciShield Evaluation ==========\n");
+
+    for (const test of acquisitions) {
+
         const response = await axios.post(
-            'http://localhost:3000/generate', {
+            "http://localhost:3000/generate",
+            {
                 prompt: test.question
             }
         );
 
-        const answer = response.data.response.toLowerCase();
+        const data = response.data;
 
-        const expected = test.expected.toLowerCase();
+        const expected =
+            test.expected
+                .toLowerCase()
+                .trim();
+
+        // Get only VERIFIED claims
+        const verifiedClaims =
+    data.claims
+        .filter((claim: any) => claim.verified)
+        .map((claim: any) =>
+            (
+                claim.normalizedClaim ??
+                claim.claim
+            )
+            .toLowerCase()
+            .trim()
+        );
 
         const success =
-            answer.includes(expected);
+            verifiedClaims.some((claim: string) =>
+                claim.includes(expected) ||
+                expected.includes(claim)
+            );
 
-        console.log(
-            `${success ?  "Pass" : "Fail"} - ${test.question}`
+        console.log("----------------------------------------");
+        console.log(`Question : ${test.question}`);
+        console.log(`Expected : ${test.expected}`);
+        console.log(`Response : ${data.response}`);
+
+        console.log("\nVerified Claims:");
+
+        verifiedClaims.forEach((claim: string) =>
+            console.log(`✓ ${claim}`)
         );
 
-        if (success) {
+        console.log(
+            `\nHallucination Score : ${data.hallucinationScore}%`
+        );
+
+        console.log(
+            success
+                ? "✅ PASS"
+                : "❌ FAIL"
+        );
+
+        if (success)
             passed++;
-        }
-        console.log("\n==================");
-        console.log(
-            `Passed: ${passed}/${acqusitions.length}`
-        );
-
-        console.log(
-            `Accuracy: ${(
-                (passed /
-                    acqusitions.length) *
-                100
-            ).toFixed(2)}%`
-        );
     }
+
+    console.log("\n========================================");
+    console.log(`Passed : ${passed}/${acquisitions.length}`);
+    console.log(
+        `Accuracy : ${(
+            (passed / acquisitions.length) *
+            100
+        ).toFixed(2)}%`
+    );
+    console.log("========================================\n");
 }
 
 runEvaluation();

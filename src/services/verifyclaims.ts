@@ -3,6 +3,7 @@ import { getFactsCollection } from "../database/chromadb";
 import { cosineSimilarity } from "../utils/cosinesimilarity";
 import { judgeClaim } from "./judgeclaims";
 import { rerankFacts } from "../services/rerank";
+import { normalizeClaim } from "./groqservice";
 
 export async function verifyclaims(claims: any[]) {
 
@@ -23,10 +24,25 @@ export async function verifyclaims(claims: any[]) {
                 return null;
             }
 
+            const normalizedClaim =
+                await normalizeClaim(
+                claimObj.claim
+            );
+
+            console.log(
+                "Original:",
+                claimObj.claim
+            );
+
+            console.log(
+                 "Normalized:",
+                normalizedClaim
+            );
+
             // STEP 1: Generate embedding
             const claimEmbedding =
                 await generateEmbeddings(
-                    claimObj.claim
+                    normalizedClaim
                 );
 
             // STEP 2: Retrieve similar facts
@@ -46,13 +62,13 @@ export async function verifyclaims(claims: any[]) {
             const metadatas = queryResult.metadatas?.[0] ?? [];
 
             // DEBUG
-           console.log(
-    docs.map((fact, i) => ({
-        fact,
-        source: metadatas[i]?.source,
-        distance: distances[i]
-    }))
-);
+            console.log(
+                docs.map((fact, i) => ({
+                    fact,
+                    source: metadatas[i]?.source,
+                    distance: distances[i]
+                }))
+            );
 
             // STEP 3: Keep only highly relevant facts
             const filteredFacts =
@@ -99,7 +115,7 @@ export async function verifyclaims(claims: any[]) {
             }
             const topFacts =
             rerankFacts(
-                claimObj.claim,
+                normalizedClaim,
                 filteredFacts
             );
             // STEP 3.5: Attach sources to evidence
@@ -145,7 +161,7 @@ const similarity =
             // STEP 6: Judge claim
             const verified =
             await judgeClaim(
-                claimObj.claim,
+                normalizedClaim,
                 evidence
             );
            
@@ -154,6 +170,7 @@ const similarity =
             return {
 
                 claim: claimObj.claim,
+                normalizedClaim: normalizedClaim,
 
                 type: claimObj.type,
 
