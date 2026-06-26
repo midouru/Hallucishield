@@ -8,6 +8,7 @@ import { generateGroqResponse } from "../services/groqservice";
 
 import { QueryExpansionService } from "../services/queryExpansion";
 import { rerankFacts } from "../services/rerank";
+import { debug } from "../utils/logger";
 
 const router = express.Router();
 
@@ -39,20 +40,13 @@ router.post("/", async (req, res) => {
       (item): item is string => item !== null
     )
   );*/ 
-    // DEBUG LOGS
-    console.log("\n====================");
-    console.log("USER QUERY:");
-    console.log(prompt);
 
-    console.log("\nEXPANDED QUERY:");
-    console.log(expandedQuery);
-
-    console.log("\nRETRIEVED CONTEXT:");
-    console.log(retrievedContext);
-
-    console.log("\nFINAL CONTEXT:");
-    console.log(finalContext);
-    console.log("====================\n");
+    debug("Pipeline",{
+      userQuery: prompt,
+       expandedQuery,
+        retrievedContext,
+        finalContext
+      });
 
     // STEP 4: Grounded Prompt
     const groundedPrompt = `
@@ -77,9 +71,7 @@ ${prompt}
 Answer:
 `;
 
-    console.log("\nPROMPT SENT TO LLM:\n");
-    console.log(groundedPrompt);
-
+   debug("Grounded Prompt", groundedPrompt);
     // STEP 5: Generate Answer
     const llmResponse =
       await generateGroqResponse(groundedPrompt);
@@ -88,15 +80,13 @@ Answer:
       throw new Error("LLM response was null");
     }
 
-    console.log("\nLLM RESPONSE:");
-    console.log(llmResponse);
+    debug("LLM Response", llmResponse);
 
     // STEP 6: Extract Claims
     const claims =
       await extractClaims(prompt, llmResponse);
 
-    console.log("\nEXTRACTED CLAIMS:");
-    console.log(claims);
+    debug("Extracted Claims", claims);
 
     // STEP 7: Verify Claims
     const verifiedClaims =
@@ -112,9 +102,7 @@ Answer:
     0: Math.round(
       ((totalClaims - verifiedCount) / totalClaims) * 100
     );
-
-    console.log("\nVERIFIED CLAIMS:");
-    console.log(verifiedClaims);
+    debug("Verified Claims", verifiedClaims);
 
     // STEP 8: Return Response
     return res.json({

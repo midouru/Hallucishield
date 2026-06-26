@@ -1,5 +1,7 @@
 import { generateGroqResponse }
 from "./groqservice";
+import { debug }
+from "../utils/logger";
 
 export async function judgeClaim(
     claim: string,
@@ -51,10 +53,7 @@ or
             throw new Error("Empty response from groq service");
         }
 
-        console.log(
-            "JUDGE RESPONSE:",
-            response
-        );
+        debug("Judge Response", response);
 
         const parsed =
             JSON.parse(response);

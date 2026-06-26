@@ -4,6 +4,8 @@ import { cosineSimilarity } from "../utils/cosinesimilarity";
 import { judgeClaim } from "./judgeclaims";
 import { rerankFacts } from "../services/rerank";
 import { normalizeClaim } from "./groqservice";
+import { config } from "../config/config";
+import { debug } from "../utils/logger";
 
 export async function verifyclaims(claims: any[]) {
 
@@ -29,15 +31,10 @@ export async function verifyclaims(claims: any[]) {
                 claimObj.claim
             );
 
-            console.log(
-                "Original:",
-                claimObj.claim
-            );
-
-            console.log(
-                 "Normalized:",
-                normalizedClaim
-            );
+           debug("Claim Normalization",{
+            original: claimObj.claim,
+            normalized: normalizedClaim
+            });;
 
             // STEP 1: Generate embedding
             const claimEmbedding =
@@ -51,7 +48,7 @@ export async function verifyclaims(claims: any[]) {
                     queryEmbeddings: [
                         claimEmbedding
                     ],
-                    nResults: 8
+                    nResults: config.TOP_K,
                 });
 
             const docs =
@@ -81,7 +78,7 @@ export async function verifyclaims(claims: any[]) {
                         fact &&
                         typeof fact === "string" &&
                         typeof distance === "number" &&
-                        distance < 0.4
+                        distance < config.SIMILARITY_THRESHOLD
                     );
 
                 }) as string[];
@@ -192,7 +189,7 @@ const similarity =
                     verificationMethod:
                         "chromadb_vector_search + llm_judge",
 
-                    threshold: 0.25,
+                    threshold: config.SIMILARITY_THRESHOLD,
 
                     timestamp:
                         new Date().toISOString()

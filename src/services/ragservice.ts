@@ -1,6 +1,7 @@
 import { getFactsCollection } from '../database/chromadb';
 import { generateEmbeddings } from './embeddingservice';
-
+import { config } from '../config/config';
+import { debug } from '../utils/logger';
 
 export async function retrieveContext(
     query: string,
@@ -11,19 +12,19 @@ export async function retrieveContext(
 
     const results = await collection.query({
         queryEmbeddings: [queryEmbedding],
-        nResults: 20,
+        nResults: config.TOP_K,
 
     })
 
-    const metadata =
-    results.metadatas?.[0] ?? [];
-    console.log("QUERY:", query);
-    console.log(
-    results.documents?.[0]?.map((doc, i) => ({
-        doc,
-        source: metadata[i]?.source,
-        distance: results.distances?.[0]?.[i],
-    }))
-)
+
+    debug("RAG Query", query);
+
+    debug("Retrieved Documents",
+        results.documents?.[0]?.map((doc,i)=>({
+            doc,
+            source: results.metadatas?.[0]?.[i]?.source,
+            distance: results.distances?.[0]?.[i]
+        })));
+
     return results.documents?.[0] || [];
 }
