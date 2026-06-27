@@ -1,0 +1,48 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: dark;
+  font-synthesis: none;
+  text-rendering: geometricPrecision;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+  background: #070a12;
+  font-family: Inter, Geist, ui-sans-serif, system-ui, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+::selection {
+  background: rgba(99, 102, 241, 0.34);
+}
+
+.glass {
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  background:
+    linear-gradient(180deg, rgba(17, 24, 39, 0.82), rgba(10, 14, 24, 0.68)),
+    rgba(15, 23, 42, 0.58);
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.28);
+  backdrop-filter: blur(18px);
+}
+
+.panel-gradient {
+  background:
+    linear-gradient(135deg, rgba(79, 70, 229, 0.2), transparent 34%),
+    linear-gradient(215deg, rgba(16, 185, 129, 0.12), transparent 28%),
+    linear-gradient(180deg, rgba(17, 24, 39, 0.92), rgba(8, 12, 22, 0.9));
+}
+
+.thin-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(100, 116, 139, 0.7) transparent;
+}
