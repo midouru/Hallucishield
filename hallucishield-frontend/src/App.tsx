@@ -1,4 +1,5 @@
 import { AnimatePresence, motion } from "framer-motion";
+import { verifyQuery } from "./services/verification";
 import {
   Activity,
   AlertTriangle,
@@ -23,7 +24,6 @@ import {
 import { useMemo, useState } from "react";
 import {
   activity,
-  claims,
   knowledgeStats,
   pipeline,
   recentRuns,
@@ -64,6 +64,7 @@ function cn(...classes: Array<string | false | null | undefined>) {
 
 export default function App() {
   const [page, setPage] = useState<Page>("dashboard");
+  const [verificationResult, setVerificationResult] = useState<any>(null);
 
   return (
     <div className="min-h-screen overflow-hidden bg-ink text-slate-100">
@@ -81,8 +82,11 @@ export default function App() {
                 exit={{ opacity: 0, y: -8 }}
                 transition={{ duration: 0.22 }}
               >
-                {page === "dashboard" && <Dashboard setPage={setPage} />}
-                {page === "verification" && <Verification />}
+                {page === "dashboard" && <Dashboard setPage={setPage} 
+                setVerificationResult={setVerificationResult}/>}
+                {page === "verification" && (
+                  <Verification verificationResult={verificationResult} />
+                )}
                 {page === "knowledge" && <Knowledge />}
                 {page === "analytics" && <Analytics />}
               </motion.div>
@@ -219,11 +223,12 @@ function MobileNav({
   );
 }
 
-function Dashboard({ setPage }: { setPage: (page: Page) => void }) {
+function Dashboard({ setPage, setVerificationResult, }: { setPage: (page: Page) => void; setVerificationResult:(data:any)=>void; }) {
   return (
     <div className="space-y-5">
       <section className="grid gap-5 xl:grid-cols-[1.25fr_0.75fr]">
-        <VerificationComposer onVerify={() => setPage("verification")} />
+        <VerificationComposer onVerify={() => setPage("verification")}
+        setVerificationResult={setVerificationResult} />
         <ScoreSpotlight />
       </section>
       <StatsGrid />
@@ -235,7 +240,9 @@ function Dashboard({ setPage }: { setPage: (page: Page) => void }) {
   );
 }
 
-function VerificationComposer({ onVerify }: { onVerify: () => void }) {
+function VerificationComposer({ onVerify, setVerificationResult  }: { onVerify: () => void; setVerificationResult:(data:any)=>void; }) {
+  const [query, setQuery] = useState("");
+  const [loading, setLoading] = useState(false);
   return (
     <div className="panel-gradient rounded-[28px] border border-white/10 p-5 shadow-premium sm:p-7">
       <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
@@ -251,9 +258,27 @@ function VerificationComposer({ onVerify }: { onVerify: () => void }) {
       </div>
       <div className="glass rounded-2xl p-3">
         <textarea
-          className="min-h-36 w-full resize-none rounded-xl border border-white/10 bg-slate-950/70 p-4 text-sm leading-6 text-slate-200 outline-none transition placeholder:text-slate-600 focus:border-indigo-300/40"
-          defaultValue="What are the benefits of vector databases for RAG systems?"
-          aria-label="Verification query"
+        value={query}
+        onChange={(e) => setQuery(e.target.value)}
+        placeholder="Ask anything..."
+        rows={4}
+        className="
+          w-full
+          resize-none
+          rounded-xl
+          border border-slate-700/60
+          bg-[#0B1020]
+          px-5
+          py-4
+          text-sm
+          text-slate-200
+          placeholder:text-slate-500
+          outline-none
+          transition
+          focus:border-indigo-500
+          focus:ring-2
+          focus:ring-indigo-500/20
+        "
         />
         <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex flex-wrap gap-2">
@@ -268,12 +293,43 @@ function VerificationComposer({ onVerify }: { onVerify: () => void }) {
             ))}
           </div>
           <button
-            onClick={onVerify}
-            className="inline-flex items-center justify-center gap-2 rounded-xl bg-indigo-500 px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-indigo-950/40 transition hover:bg-indigo-400"
-          >
-            Verify
-            <ArrowRight className="h-4 w-4" />
-          </button>
+            onClick={async () => {
+              if (!query.trim()) return;
+
+              setLoading(true);
+
+              try {
+                const result = await verifyQuery(query);
+                // Merge the original user query into the result so
+                // the Verification page can display it (backend does not echo it back)
+                setVerificationResult({ ...result, query });
+                onVerify();
+              } catch (err) {
+                console.error(err);
+                alert("Backend connection failed.");
+              } finally {
+                setLoading(false);
+              }
+    }}
+    className="
+    rounded-xl
+    bg-gradient-to-r
+    from-indigo-500
+    to-violet-500
+    px-8
+    py-3
+    font-medium
+    text-white
+    transition-all
+    hover:scale-[1.02]
+    hover:shadow-lg
+    hover:shadow-indigo-500/20
+    disabled:cursor-not-allowed
+    disabled:opacity-60
+  "
+>
+    {loading ? "Verifying..." : "Verify"}
+</button>
         </div>
       </div>
     </div>
@@ -384,18 +440,38 @@ function StatusPanel() {
   );
 }
 
-function Verification() {
+function Verification({
+  verificationResult,
+}: {
+  verificationResult: any;
+}) {
+  console.log(verificationResult);
+  // Backend returns:
+  //   claims        → Claim[]  (the array to map over)
+  //   verifiedClaims → number  (count only, NOT an array)
+  const uiClaims =
+    verificationResult?.claims?.map((c: any, i: number) => ({
+      id: i,
+      text: c.claim,
+      // confidence is a 0-1 decimal from the backend; multiply to get %
+      confidence: Math.round((c.confidence ?? 0) * 100),
+      status: c.verified ? "verified" : "failed",
+      source: c.evidence?.[0]?.source ?? "Unknown",
+      evidence: Array.isArray(c.evidence)
+        ? c.evidence.map((e: any) => e.fact).join("\n")
+        : "No evidence available",
+    })) ?? [];
   return (
     <div className="space-y-5">
       <section className="glass rounded-[24px] p-5">
         <div className="mb-2 text-xs uppercase tracking-[0.18em] text-slate-500">Question</div>
         <div className="text-lg font-medium text-white">
-          What are the benefits of vector databases for RAG systems?
+          {verificationResult?.query}
         </div>
       </section>
 
       <section className="grid gap-5 xl:grid-cols-[1.25fr_0.75fr]">
-        <AnswerPanel />
+        <AnswerPanel response={verificationResult?.response} />
         <div className="glass rounded-[24px] p-6">
           <div className="mb-5 flex items-center justify-between">
             <div>
@@ -404,23 +480,23 @@ function Verification() {
             </div>
             <ShieldCheck className="h-5 w-5 text-emerald-300" />
           </div>
-          <HallucinationGauge score={12} />
+          <HallucinationGauge score={verificationResult?.hallucinationScore ?? 0} />
           <div className="mt-5 grid grid-cols-2 gap-3">
             <MiniMetric label="Evidence coverage" value="92%" tone="text-emerald-300" />
             <MiniMetric label="Avg confidence" value="88%" tone="text-indigo-200" />
           </div>
         </div>
       </section>
-
+    
       <section className="grid gap-5 xl:grid-cols-[1fr_380px]">
-        <ClaimsList />
+        <ClaimsList claims={uiClaims}/>
         <PipelineTimeline />
       </section>
     </div>
   );
 }
 
-function AnswerPanel() {
+function AnswerPanel({ response }: { response?: any }) {
   return (
     <div className="glass rounded-[24px] p-5 sm:p-6">
       <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
@@ -434,10 +510,7 @@ function AnswerPanel() {
         </div>
       </div>
       <p className="text-base leading-8 text-slate-200">
-        Vector databases improve RAG systems by retrieving semantically relevant
-        passages from embedded source material. They help match user intent even
-        when the query and source text use different wording, which can improve
-        context quality before generation.
+        {response ?? "No verification yet."}
       </p>
       <div className="mt-5 grid gap-3 sm:grid-cols-3">
         <MiniMetric label="Claims extracted" value="9" tone="text-white" />
@@ -494,10 +567,10 @@ function HallucinationGauge({ score }: { score: number }) {
   );
 }
 
-function ClaimsList() {
+function ClaimsList({claims}:{claims:any[]}) {
   return (
     <section className="glass rounded-[24px] p-5">
-      <SectionHeader icon={FileSearch} title="Verified claims" action="9 extracted" />
+      <SectionHeader icon={FileSearch} title="Verified claims" action={`${claims.length} extracted`} />
       <div className="mt-4 space-y-3">
         {claims.map((claim, index) => (
           <ClaimCard key={claim.id} claim={claim} index={index} />

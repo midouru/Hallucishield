@@ -48,8 +48,7 @@ Return ONLY JSON.
             return [];
         }
 
-        const parsed =
-            JSON.parse(response);
+        const parsed = JSON.parse(response);
 
         return Array.isArray(parsed)
             ? parsed
