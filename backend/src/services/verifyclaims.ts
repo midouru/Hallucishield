@@ -1,19 +1,18 @@
-import { generateEmbeddings } from "./embeddingservice";
-import { getFactsCollection } from "../database/chromadb";
-import { cosineSimilarity } from "../utils/cosinesimilarity";
 import { judgeClaim } from "./judgeclaims";
-import { rerankFacts } from "./rerank";
 import { normalizeClaim } from "./groqservice";
 import { config } from "../config/config";
 import { debug } from "../utils/logger";
+import { retrieveHybrid } from "../retrieval/hybridretrieval";
+import { cleanEvidence } from "../utils/evidencecleaner";
+import { filterRelevantEvidence } from "../utils/evidencefilter";
 
-export async function verifyclaims(claims: any[]) {
+export async function verifyclaims(claims: any[], evidencepool: any[]) {
 
     if (!Array.isArray(claims) || claims.length === 0) {
         return [];
     }
 
-    const collection = await getFactsCollection();
+   
 
     const results = await Promise.all(
 
@@ -36,7 +35,7 @@ export async function verifyclaims(claims: any[]) {
             normalized: normalizedClaim
             });;
 
-            // STEP 1: Generate embedding
+           /* // STEP 1: Generate embedding
             const claimEmbedding =
                 await generateEmbeddings(
                     normalizedClaim
@@ -56,111 +55,95 @@ export async function verifyclaims(claims: any[]) {
 
             const distances =
                 queryResult.distances?.[0] ?? [];
-            const metadatas = queryResult.metadatas?.[0] ?? [];
+            const metadatas = queryResult.metadatas?.[0] ?? [];*/
+            // ⭐ CHANGED - Retrieve evidence from BOTH Chroma + Web
+const evidenceCandidates = filterRelevantEvidence(
+    normalizedClaim,
+    evidencepool,
+    5
+);
 
-            // DEBUG
-            console.log(
-                docs.map((fact, i) => ({
-                    fact,
-                    source: metadatas[i]?.source,
-                    distance: distances[i]
-                }))
-            );
+// ⭐ CHANGED - Rank evidence
+// For now we prefer web evidence first.
+// Later we'll replace this with semantic reranking.
+const rankedEvidence = [...evidenceCandidates].sort((a, b) => {
 
-            // STEP 3: Keep only highly relevant facts
-            const filteredFacts =
-                docs.filter((fact, index) => {
+    if (a.type !== b.type) {
 
-                    const distance =
-                        distances[index];
+        if (a.type === "web") return -1;
 
-                    return (
-                        fact &&
-                        typeof fact === "string" &&
-                        typeof distance === "number" &&
-                        distance < config.SIMILARITY_THRESHOLD
-                    );
+        if (b.type === "web") return 1;
+    }
 
-                }) as string[];
+    return (a.distance ?? 0) - (b.distance ?? 0);
 
-            if (filteredFacts.length === 0) {
+});
 
-                return {
+// ⭐ CHANGED - Keep only the best evidence
+const topEvidence = rankedEvidence.slice(0, 5);
+const cleanedEvidence = topEvidence.map(doc => ({
+    ...doc,
+    text: cleanEvidence(doc.text)
+})).filter(doc => doc.text.length > 40);
 
-                    claim: claimObj.claim,
-                    type: claimObj.type,
+// ⭐ CHANGED - Debug
+debug(
+    "TOP EVIDENCE",
+    cleanedEvidence.map(doc => ({
+        source: doc.source,
+        type: doc.type,
+        preview: doc.text.substring(0, 120)
+    }))
+);
 
-                    verified: false,
+// ⭐ CHANGED - Build evidence string for judge
+const evidence = cleanedEvidence
+    .map(doc => doc.text)
+    .join("\n\n");
 
-                    confidence: 0,
+// ⭐ CHANGED - Objects returned to frontend
+const evidenceObjects = cleanedEvidence.map(doc => ({
+    fact: doc.text,
+    source: doc.source,
+    type: doc.type
+})).filter(e => e.fact.length > 40);
 
-                    evidence: null,
+// ⭐ Dynamic confidence based on retrieval distance
 
-                    matchedFact: [],
 
-                    auditTrail: {
-                        verificationMethod:
-                            "chromadb_vector_search",
-
-                        rejectionReason:
-                            "No relevant evidence found",
-
-                        timestamp:
-                            new Date().toISOString()
-                    }
-                };
-            }
-            const topFacts =
-            rerankFacts(
-                normalizedClaim,
-                filteredFacts
-            );
-            // STEP 3.5: Attach sources to evidence
-
-            const evidenceObjects =
-                topFacts.map(fact => {
-
-                const index =
-                    docs.indexOf(fact);
-
-                return {
-
-                    fact,
-
-                    source:
-                     metadatas[index]?.source ??
-                        "unknown"
-                };
-            });
-
-            // STEP 4: Build evidence
-            const evidence =
-                topFacts.join("\n");
-
-            const similarities =
-                await Promise.all(
-                    topFacts.map(async fact => {
-
-                const emb =
-                    await generateEmbeddings(fact);
-
-                return cosineSimilarity(
-                    claimEmbedding,
-                    emb
-                );
-
-            })
-    );
-
-const similarity =
-    Math.max(...similarities);
 
             // STEP 6: Judge claim
-            const verified =
-            await judgeClaim(
-                normalizedClaim,
-                evidence
-            );
+            const verified = await judgeClaim(normalizedClaim, evidence);
+            // Calculate confidence here
+let confidence = 80;
+
+if (!verified) {
+    confidence = 0;
+} else if (topEvidence.some(e => e.type === "web")) {
+    confidence = 92;
+} else if ((topEvidence[0]?.distance ?? 1) < 0.15) {
+    confidence = 95;
+} else {
+    confidence = 80;
+}
+            let finalEvidence = evidenceObjects;
+
+            if (!verified) {
+
+                finalEvidence = evidenceObjects.filter(e =>
+                e.fact.toLowerCase().includes(
+                 normalizedClaim.split(" ")[0].toLowerCase()
+                )
+            );          
+
+            if (finalEvidence.length === 0) {
+                finalEvidence = [{
+                    fact: "No supporting evidence found.",
+                    source: "HalluciShield",
+                    type: "system"
+            }];
+        }
+    }
            
 
             // STEP 7: Return result
@@ -173,17 +156,14 @@ const similarity =
 
                 verified,
 
-                confidence:
-                    verified
-                        ? Number(similarity.toFixed(2))
-                        : 0,
+                confidence: verified ? confidence: 0,
 
                 evidence : evidenceObjects,
-
+                
                 
 
                 matchedFact:
-                    evidenceObjects,
+                    finalEvidence,
 
                 auditTrail: {
                     verificationMethod:

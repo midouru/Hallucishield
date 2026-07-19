@@ -1,5 +1,6 @@
 import { AnimatePresence, motion } from "framer-motion";
 import { verifyQuery } from "./services/verification";
+import { getSourceName } from "./helpers/sourceformatter";
 import {
   Activity,
   AlertTriangle,
@@ -305,7 +306,7 @@ function VerificationComposer({ onVerify, setVerificationResult  }: { onVerify: 
                 setVerificationResult({ ...result, query });
                 onVerify();
               } catch (err) {
-                console.error(err);
+                console.error("Verification failed:", err);
                 alert("Backend connection failed.");
               } finally {
                 setLoading(false);
@@ -445,22 +446,18 @@ function Verification({
 }: {
   verificationResult: any;
 }) {
-  console.log(verificationResult);
+ 
   // Backend returns:
   //   claims        → Claim[]  (the array to map over)
   //   verifiedClaims → number  (count only, NOT an array)
   const uiClaims =
-    verificationResult?.claims?.map((c: any, i: number) => ({
-      id: i,
-      text: c.claim,
-      // confidence is a 0-1 decimal from the backend; multiply to get %
-      confidence: Math.round((c.confidence ?? 0) * 100),
-      status: c.verified ? "verified" : "failed",
-      source: c.evidence?.[0]?.source ?? "Unknown",
-      evidence: Array.isArray(c.evidence)
-        ? c.evidence.map((e: any) => e.fact).join("\n")
-        : "No evidence available",
-    })) ?? [];
+  verificationResult?.claims?.map((c: any, i: number) => ({
+    id: i,
+    text: c.claim,
+    confidence: Math.round(c.confidence),
+    status: c.verified ? "verified" : "failed",
+    evidence: c.evidence ?? [],
+  })) ?? [];
   return (
     <div className="space-y-5">
       <section className="glass rounded-[24px] p-5">
@@ -524,6 +521,39 @@ function AnswerPanel({ response }: { response?: any }) {
 function HallucinationGauge({ score }: { score: number }) {
   const circumference = 2 * Math.PI * 74;
   const offset = circumference - (score / 100) * circumference;
+function getRisk(score:number){
+
+if(score<=20)
+return{
+label:"Very Low",
+color:"text-emerald-300"
+};
+
+if(score<=40)
+return{
+label:"Low",
+color:"text-emerald-300"
+};
+
+if(score<=60)
+return{
+label:"Medium",
+color:"text-yellow-300"
+};
+
+if(score<=80)
+return{
+label:"High",
+color:"text-orange-300"
+};
+
+return{
+label:"Critical",
+color:"text-red-300"
+};
+
+}
+const risk=getRisk(score);
 
   return (
     <div className="mx-auto flex max-w-[260px] flex-col items-center">
@@ -559,7 +589,10 @@ function HallucinationGauge({ score }: { score: number }) {
         </svg>
         <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
           <div className="text-5xl font-semibold tracking-tight text-white">{score}%</div>
-          <div className="mt-2 text-sm font-medium text-emerald-300">Low risk</div>
+          
+          <div className={risk.color}>
+            {risk.label}
+          </div>
           <div className="mt-1 text-xs text-slate-500">hallucination score</div>
         </div>
       </div>
@@ -621,13 +654,31 @@ function ClaimCard({ claim, index }: { claim: Claim; index: number }) {
             transition={{ duration: 0.2 }}
             className="overflow-hidden"
           >
-            <div className="mt-4 rounded-xl border border-white/10 bg-slate-950/55 p-4">
-              <div className="mb-2 flex items-center gap-2 text-xs font-medium text-slate-400">
-                <FileCheck2 className="h-3.5 w-3.5" />
-                {claim.source}
-              </div>
-              <p className="text-sm leading-6 text-slate-300">{claim.evidence}</p>
-            </div>
+            <div className="mt-4 space-y-3">
+
+{Array.isArray(claim.evidence) ? claim.evidence.map((item:any,index:number)=>(
+
+<div key={index} className="rounded-xl border border-white/10 bg-slate-950/55 p-4">
+
+    <div className="mb-2 text-xs text-slate-400">
+
+        {getSourceName(item.source)}
+        <a href={item.source} target="_blank" rel="noreferrer" className="text-xs text-indigo-400 hover:underline">
+          Open Source ↗ </a>
+
+    </div>
+
+    <p className="text-sm leading-6 text-slate-300">
+
+        {item.fact}
+
+    </p>
+
+</div>
+
+)) : null}
+
+</div>
           </motion.div>
         )}
       </AnimatePresence>

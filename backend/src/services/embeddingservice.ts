@@ -1,15 +1,40 @@
-import axios from  "axios";
-export async function generateEmbeddings(text: string) {
-    const response = await axios.post("http://localhost:11434/api/embeddings", {
-        model: 'nomic-embed-text',
-        prompt: text
-    });
+import axios from "axios";
 
-    const embedding = response.data.embedding;
-
-    if (!embedding || embedding.length === 0) {
-        throw new Error(`Embedding returned empty for: "${text}"`);
+export async function generateEmbeddings(text: string): Promise<number[]> {
+    const apiKey = process.env.JINA_API_KEY;
+    if (!apiKey) {
+        throw new Error("JINA_API_KEY is not set in environment variables.");
     }
 
-    return embedding;
+    try {
+        const response = await axios.post(
+            "https://api.jina.ai/v1/embeddings",
+            {
+                model: "jina-embeddings-v3",
+                task: "retrieval.passage",
+                embedding_type: "float",
+                input: [text]
+            },
+            {
+                headers: {
+                    Authorization: `Bearer ${apiKey}`,
+                    "Content-Type": "application/json"
+                }
+            }
+        );
+
+        const embedding = response.data.data?.[0]?.embedding;
+
+        if (!embedding || embedding.length === 0) {
+            throw new Error("Empty embedding returned from Jina.");
+        }
+
+        return embedding;
+    } catch (err: any) {
+        console.error(
+            "Jina Embedding Error:",
+            err.response?.data || err.message
+        );
+        throw err;
+    }
 }

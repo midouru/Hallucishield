@@ -33,7 +33,7 @@ export async function loadKnowledgeBase() {
                 }]
             });
 
-            console.log("Loaded:", chunk);
+            
         }
     }
     console.log("Knowledge base loaded successfully.");

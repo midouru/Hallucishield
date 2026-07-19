@@ -9,9 +9,11 @@ dotenv.config();
 
 async function startServer() {
     
+
+    if (process.env.REBUILD_KB === "true") {
     await resetFactsCollection();
-    /*await loadFactstoChroma();*/
     await loadKnowledgeBase();
+}
     app.listen(config.PORT, () => {
         console.log(`Server is running on port ${config.PORT}`);
     });

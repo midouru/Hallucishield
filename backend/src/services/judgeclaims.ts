@@ -9,17 +9,20 @@ export async function judgeClaim(
 ): Promise<boolean> {
 
     const prompt = `
-You are a strict fact checker.
+You are an expert factual verification engine.
 
-Verify the claim ONLY using the provided evidence.
+Your task is to determine whether the claim is supported by the provided evidence.
 
 Rules:
 
-- Use only the evidence.
-- No external knowledge.
-- No assumptions.
-- No inference beyond what is explicitly stated.
-- Partial matches are false.
+1. Use ONLY the provided evidence.
+2. Do NOT use outside knowledge.
+3. Semantic equivalence counts as TRUE.
+4. Different wording with the same meaning counts as TRUE.
+5. Minor wording differences do NOT make a claim false.
+6. Return FALSE only if:
+   - the evidence contradicts the claim
+   - or the evidence does not support the claim.
 
 Claim:
 ${claim}
@@ -27,7 +30,13 @@ ${claim}
 Evidence:
 ${fact}
 
-Return ONLY JSON:
+Think carefully.
+
+Determine whether the evidence SUPPORTS the claim.
+
+Equivalent wording should be considered TRUE.
+
+Return ONLY JSON.
 
 {
   "verified": true,
@@ -55,8 +64,12 @@ or
 
         debug("Judge Response", response);
 
-        const parsed =
-            JSON.parse(response);
+        const cleaned = response
+    .replace(/```json/g, "")
+    .replace(/```/g, "")
+    .trim();
+
+const parsed = JSON.parse(cleaned);
 
         return (
             parsed.verified === true

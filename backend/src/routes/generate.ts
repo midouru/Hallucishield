@@ -3,7 +3,7 @@ import express from "express";
 import { extractClaims } from "../services/claimextracter";
 import { verifyclaims } from "../services/verifyclaims";
 
-import { retrieveContext } from "../services/ragservice";
+import { retrieveHybrid } from "../retrieval/hybridretrieval";
 import { generateGroqResponse } from "../services/groqservice";
 
 import { QueryExpansionService } from "../services/queryExpansion";
@@ -29,7 +29,16 @@ router.post("/", async (req, res) => {
 
     // STEP 2: Retrieve Context
     const retrievedContext =
-      await retrieveContext(expandedQuery);
+      await retrieveHybrid(expandedQuery);
+
+    debug(
+      "Hybrid Documents",
+      retrievedContext.map((doc: any) => ({
+        source: doc.source,
+        type: doc.type,
+        preview: doc.text?.slice(0, 120)
+      }))
+    );
 
     // STEP 3: Rerank
     const finalContext = retrievedContext;
@@ -63,7 +72,9 @@ Rules:
 "The provided context does not contain enough information."
 
 Context:
-${finalContext.join("\n")}
+${finalContext
+    .map((doc: any) => doc.text)
+    .join("\n\n")}
 
 Question:
 ${prompt}
@@ -90,7 +101,7 @@ Answer:
 
     // STEP 7: Verify Claims
     const verifiedClaims =
-      await verifyclaims(claims);
+      await verifyclaims(claims, retrievedContext);
 
     const totalClaims = verifiedClaims.length;
 
