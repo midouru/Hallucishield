@@ -1,8 +1,8 @@
 import axios from "axios";
 
-// Single axios instance pointing at the backend
 const API = axios.create({
-  baseURL: "http://localhost:3000",
+  // cast import.meta to any to avoid TypeScript error: Property 'env' does not exist on type 'ImportMeta'
+  baseURL: (import.meta as any).env?.VITE_API_URL,
   headers: {
     "Content-Type": "application/json",
   },
