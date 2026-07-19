@@ -114,11 +114,15 @@ It sits between an application and an LLM, extracts factual claims, retrieves su
 
 ## Dashboard
 
-> Add dashboard screenshot here.
+<img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/0e7a063a-f3c8-4317-964c-619ebc9f9be5" />
+
 
 ## Verification Report
 
-> Add verification screenshot here.
+<img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/3524a16a-945f-4a34-9062-4f7becb674e7" />
+<img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/ee7491b1-905b-4650-8471-34c08c421991" />
+
+
 
 ---
 
